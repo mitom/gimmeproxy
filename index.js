@@ -28,7 +28,9 @@ var GimmeProxy = {
 
 
 
-    return request(url);
+    return request(url).then(function(resp) {
+      return JSON.parse(resp);
+    });
   }
 };
 
