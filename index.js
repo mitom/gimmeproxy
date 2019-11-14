@@ -57,6 +57,7 @@ const GimmeProxy = {
         ...options,
         ...Object.fromEntries(Object.entries(QSOPTIONS).filter(([key]) => rest[key]).map(([key, option]) => [option, rest[key]])),
       },
+      json: true,
     })
   },
 }
