@@ -1,37 +1,65 @@
-var request = require('request-promise')
-  , randomstring = require('randomstring')
-;
+const request = require('request-promise-native')
+const randomstring = require('randomstring')
+const url = require('url')
 
-var GimmeProxy = {
-  '_userId': null,
-  '_timeout': null,
-  '_host': 'http://gimmeproxy.com',
-  '_path': '/api/getProxy',
-  '_timeout_path': '/api/get',
-  'config': function(config) {
-    if (config.userId) this._userId = config.userId;
-    if (config.timeout) this._timeout = config.timeout;
+const QSOPTIONS = {
+  get: 'get',
+  post: 'post',
+  cookies: 'cookies',
+  referer: 'referer',
+  userAgent: 'user-agent',
+  https: 'supportsHttps',
+  anonymityLevel: 'anonymityLevel',
+  protocol: 'protocol',
+  port: 'port',
+  country: 'country',
+  maxCheckPeriod: 'maxCheckPeriod',
+  websites: 'websites',
+  minSpeed: 'minSpeed',
+  notCountry: 'notCountry',
+  ipPort: 'ipPort',
+  curl: 'curl',
+}
 
-    // if there is no user id get a random one so timeouts can still work
-    if (! this._userId) {
-      this._userId = randomstring.generate(32);
-    }
+const GimmeProxy = {
+  _userId: null,
+  _timeout: null,
+  _api_key: null,
+
+  _host: 'http://gimmeproxy.com',
+  _path: '/api/getProxy',
+  _timeout_path: '/api/get/',
+
+  config(config) {
+    if (config.userId) this._userId = config.userId || randomstring.generate(32)
+    if (config.timeout) this._timeout = config.timeout
+    if (config.api_key) this._api_key = config.api_key
   },
-  'getProxy': function(timeout) {
-    timeout = timeout || this._timeout || null;
+  getProxy({ timeout, get = true, api_key = null, ...rest } = {}) {
+    const _timeout = timeout || this._timeout || null
+    const _api_key = api_key || this._api_key || null
+    const options = {}
 
-    // we are gonna need a user id
-    if (timeout) this.config({});
+    if (_timeout) {
+      this.config({});
+      options.timeout = _timeout
+    }
+    if (_api_key) {
+      options.api_key = api_key
+    }
+    if (get) {
+      options.get = true
+    }
+    return request(url.resolve(this._host, 
+      timeout ? url.resolve(this._timeout_path, this._userId) : this._path
+    ), {
+      qs: {
+        ...options,
+        ...Object.fromEntries(Object.entries(QSOPTIONS).filter(([key]) => rest[key]).map(([key, option]) => [option, rest[key]])),
+      },
+      json: true,
+    })
+  },
+}
 
-    var path = timeout ? (this._timeout_path + '/' + this._userId + '/?timeout=' + timeout) : this._path;
-    var url = this._host + path;
-
-
-
-    return request(url).then(function(resp) {
-      return JSON.parse(resp);
-    });
-  }
-};
-
-module.exports = GimmeProxy;
+module.exports = GimmeProxy
